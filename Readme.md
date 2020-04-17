@@ -17,11 +17,13 @@ The container configuration for the CodeIsland server configuration via docker-c
 3. Find the IP address of the Droplet
 4. Run the setup command for Docker Machine below:
 
-	docker-machine create \
-	    --driver generic \
-	    --generic-ip-address=<droplet_ip> \
-	    --generic-ssh-key <ssh-key> \
-	    codeisland
+```
+docker-machine create \
+    --driver generic \
+    --generic-ip-address=<droplet_ip> \
+    --generic-ssh-key <ssh-key> \
+    codeisland
+```
 
 **Every time** you want to connect, run `docker-machine env codeisland`, copy and execute the command in the shell. 
 
