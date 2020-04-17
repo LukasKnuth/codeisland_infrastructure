@@ -1,0 +1,82 @@
+version: '3'
+
+services:
+  reverse-proxy:
+    image: traefik:v2.2
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker"
+      - "--providers.docker.exposedByDefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.do_letsencrypt.acme.dnschallenge=true"
+      - "--certificatesResolvers.do_letsencrypt.acme.dnsChallenge.provider=digitalocean"
+      - "--certificatesResolvers.do_letsencrypt.acme.dnsChallenge.delayBeforeCheck=0"
+      - "--certificatesresolvers.do_letsencrypt.acme.email=${TFK_LETSENCRYPT_MAIL}"
+      - "--certificatesresolvers.do_letsencrypt.acme.storage=/letsencrypt/acme.json"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`traefik.codeisland.org`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=do_letsencrypt"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.middlewares.auth.basicauth.users=${TFK_USER}:${TFK_PW}"
+      - "traefik.http.routers.api.middlewares=auth"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DO_AUTH_TOKEN: ${TFK_LETSENCRYPT_DO_TOKEN}
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DO_VOLUME_MOUNT}/letsencrypt:/letsencrypt
+    restart: unless-stopped
+  
+  postgres:
+    image: postgres:12.2
+    volumes:
+      # Mounted to the droplets volume (detachable backup storage)
+      - ${DO_VOLUME_MOUNT}/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${PG_MASTER_PW}
+      - POSTGRES_USER=${PG_MASTER_USER}
+    restart: unless-stopped
+  
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The following is requried to enable pulling private repos from Docker Hub by sharing the machines credentials.
+      - /root/.docker/config.json:/config.json
+    command: --label-enable --cleanup
+    environment: # TODO Via slack?
+      - WATCHTOWER_NOTIFICATIONS_LEVEL=warn
+    restart: unless-stopped
+  
+  blog:
+    image: index.docker.io/codeisland/codeisland-org:latest # fully specified because private iamge updated via watchtower
+    depends_on:
+      - postgres
+    volumes:
+      - ${DO_VOLUME_MOUNT}/blog_assets:/app/assets
+    environment:
+      ENVIRONMENT: production
+      SITE_URL: https://codeisland.org
+      DB_DRIVER: pgsql
+      DB_SERVER: postgres # Hostname from Postgres Container
+      DB_PORT: 5432
+      DB_SCHEMA: public
+      DB_USER: ${PG_MASTER_USER}
+      DB_PASSWORD: ${PG_MASTER_PW}
+      DB_DATABASE: ${BLOG_DB}
+      SECURITY_KEY: ${BLOG_SEC_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.blog.rule=Host(`codeisland.org`)"
+      - "traefik.http.routers.blog.entrypoints=websecure"
+      - "traefik.http.routers.blog.tls.certresolver=do_letsencrypt"
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
