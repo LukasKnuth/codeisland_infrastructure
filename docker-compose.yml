@@ -53,7 +53,10 @@ services:
       - /root/.docker/config.json:/config.json
     command: --label-enable --cleanup
     environment: # TODO Via slack?
-      - WATCHTOWER_NOTIFICATIONS_LEVEL=warn
+      - WATCHTOWER_NOTIFICATIONS_LEVEL=info
+      - WATCHTOWER_NOTIFICATIONS=slack
+      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=${WTR_NOTI_SLACK_HOOK}
+      - WATCHTOWER_NOTIFICATION_SLACK_CHANNEL=${WTR_NOTI_SLACK_CHANNEL}
     restart: unless-stopped
   
   blog:
