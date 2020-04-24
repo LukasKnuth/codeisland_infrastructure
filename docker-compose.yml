@@ -58,6 +58,12 @@ services:
       - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=${WTR_NOTI_SLACK_HOOK}
       - WATCHTOWER_NOTIFICATION_SLACK_CHANNEL=${WTR_NOTI_SLACK_CHANNEL}
     restart: unless-stopped
+
+  backup:
+    image: codeisland/backup_retention
+    environment:
+      - DO_TOKEN=${BCK_DO_TOKEN}
+    restart: unless-stopped
   
   blog:
     image: index.docker.io/codeisland/codeisland-org:latest # fully specified because private iamge updated via watchtower
