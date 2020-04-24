@@ -63,6 +63,8 @@ services:
     image: codeisland/backup_retention
     environment:
       - DO_TOKEN=${BCK_DO_TOKEN}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     restart: unless-stopped
   
   blog:
