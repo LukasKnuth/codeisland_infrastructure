@@ -51,13 +51,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # The following is requried to enable pulling private repos from Docker Hub by sharing the machines credentials.
       - /root/.docker/config.json:/config.json
-    command: --label-enable --cleanup
+    command: --label-enable --cleanup --run-once
     environment: # TODO Via slack?
       - WATCHTOWER_NOTIFICATIONS_LEVEL=info
       - WATCHTOWER_NOTIFICATIONS=slack
       - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=${WTR_NOTI_SLACK_HOOK}
       - WATCHTOWER_NOTIFICATION_SLACK_CHANNEL=${WTR_NOTI_SLACK_CHANNEL}
-    restart: unless-stopped
+    restart: "no" # We only run once.
 
   backup:
     image: codeisland/backup_retention
